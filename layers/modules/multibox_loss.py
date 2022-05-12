@@ -7,6 +7,7 @@ from data import coco as cfg
 from ..box_utils import match, log_sum_exp
 
 
+# class MultiBoxLoss(nn.Module):
 class MultiBoxLoss(nn.Module):
     """SSD Weighted Loss Function
     Compute Targets:

@@ -382,10 +382,10 @@ def test_net(save_folder, net, cuda, dataset, transform, top_k,
         if args.cuda:
             x = x.cuda()
         _t['im_detect'].tic()
-        # detections = net.apply(x).data
-        detections = net(x).data
+        detections = net(x)
+        # detections = net(x).data
         detect_time = _t['im_detect'].toc(average=False)
-
+        # print(detections)
         # skip j = 0, because it's the background class
         for j in range(1, detections.size(1)):
             dets = detections[0, j, :]
@@ -398,8 +398,11 @@ def test_net(save_folder, net, cuda, dataset, transform, top_k,
             boxes[:, 2] *= w
             boxes[:, 1] *= h
             boxes[:, 3] *= h
-            scores = dets[:, 0].cpu().numpy()
-            cls_dets = np.hstack((boxes.cpu().numpy(),
+            # scores = dets[:, 0].cpu().numpy()
+            scores = dets[:, 0].detach().cpu().numpy()
+            cls_dets = np.hstack((
+                                    # boxes.cpu().numpy(),
+                                    boxes.detach().cpu().numpy(),
                                   scores[:, np.newaxis])).astype(np.float32,
                                                                  copy=False)
             all_boxes[j][i] = cls_dets
@@ -420,20 +423,22 @@ def evaluate_detections(box_list, output_dir, dataset):
 
 
 if __name__ == '__main__':
+
     # load net
-    num_classes = len(labelmap) + 1                      # +1 for background
+    num_classes = len(labelmap) + 1                   # +1 for background
     net = build_ssd('test', 300, num_classes)            # initialize SSD
     net.load_state_dict(torch.load(args.trained_model))
     net.eval()
     print('Finished loading model!')
     # load data
     dataset = VOCDetection(args.voc_root, [('2007', set_type)],
-                           BaseTransform(300, dataset_mean),
-                           VOCAnnotationTransform())
+                        BaseTransform(300, dataset_mean),
+                        VOCAnnotationTransform())
     if args.cuda:
         net = net.cuda()
         cudnn.benchmark = True
     # evaluation
     test_net(args.save_folder, net, args.cuda, dataset,
-             BaseTransform(net.size, dataset_mean), args.top_k, 300,
-             thresh=args.confidence_threshold)
+            BaseTransform(net.size, dataset_mean), args.top_k, 300,
+            thresh=args.confidence_threshold)
+
